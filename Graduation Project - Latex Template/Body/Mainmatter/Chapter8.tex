@@ -1,0 +1,72 @@
+\chapter{Conclusion and Future Work}
+
+\section{Summary}
+
+This project set out to translate American Sign Language gestures into speech
+using only a wearable inertial glove, with the entire recognition pipeline
+running on commodity hardware and a phone. The resulting system places a
+microcontroller-and-IMU module on each fingernail, streams four fingers' data
+over ESP-NOW to a fifth ``master'' finger, and bridges to a mobile phone over
+Bluetooth Low Energy, where a quantised one-dimensional convolutional neural
+network classifies a captured window and speaks the result. The wireless link
+delivers all five finger streams at 25\,Hz with negligible loss, and the
+deployed model runs in about one millisecond using tens of kilobytes of memory.
+
+Beyond the working system, the project's most valuable outcome is a clear,
+empirically grounded understanding of \emph{feature representation} for
+inertial sign recognition. Through successive live failures and fixes, the work
+established that absolute-orientation features for static handshapes are
+fragile against imperfect re-calibration and limited by sensor resolution; that
+an orientation-invariant relative transform fixes the calibration problem but
+not the resolution problem, and harms dynamic signs that depend on global
+motion; and that the robust formulation is to perform gestures as distinctive
+\emph{motions} and classify them on \emph{absolute} features, placing the
+decisive information in the calibration-independent angular-rate channels.
+
+\section{Limitations}
+
+Several limitations are acknowledged honestly. First, the reported accuracies
+are within-session; rigorous cross-session and cross-user evaluation remains to
+be done, and is expected to lower the figures. Second, the device instruments a
+single hand and recognises segmented, one-gesture-at-a-time input, not
+continuous or two-handed signing. Third, fingerspelling letters that differ
+only by fine thumb placement are at the limit of what six-axis IMUs can resolve
+statically; the project mitigates this by encoding letters as distinct motions,
+but this departs from the canonical static handshapes. Fourth, power integrity
+under simultaneous radio transmissions is a real constraint that requires
+attention to the supply and wiring. Finally, recognition operates at the level
+of single letters and words without higher-level language modelling.
+
+\section{Future Work}
+
+\begin{itemize}
+    \item \textbf{Cross-session and multi-user data.} Collecting several
+    sessions on different days, and data from multiple wearers, would both
+    improve robustness and provide an honest generalisation measure to replace
+    the within-session figures.
+    \item \textbf{Word-level language modelling.} A dictionary- or trie-based
+    decoder over the letter stream would resolve residual letter confusions at
+    the word level, since context disambiguates letters that are individually
+    ambiguous—mirroring how human readers parse fingerspelling.
+    \item \textbf{Power hardening and battery operation.} Fixing the supply and
+    wiring, adding decoupling, lowering the transmit power, and adding a
+    listen-triggered sleep mode would enable untethered battery operation and
+    reduce heat, allowing longer continuous use.
+    \item \textbf{Larger and two-handed vocabulary.} Extending to a larger word
+    set and, with a second instrumented hand, to two-handed signs would broaden
+    practical usefulness.
+    \item \textbf{Continuous recognition.} Moving from gated, segmented capture
+    to continuous gesture spotting would make the device feel more natural,
+    at the cost of a harder segmentation and modelling problem.
+\end{itemize}
+
+\section{Concluding Remarks}
+
+The project delivers a complete, self-contained sign-language translation glove
+and, just as importantly, a documented account of why it is built the way it
+is. The system evolved through measured failures—antenna coupling, USB
+throughput, BLE MTU, calibration drift, sensor resolution, and power
+integrity—each of which was diagnosed and resolved with an understood
+engineering trade-off rather than a guess. That process, and the
+feature-representation conclusion it produced, is the work's main contribution
+and the strongest foundation for the future work above.

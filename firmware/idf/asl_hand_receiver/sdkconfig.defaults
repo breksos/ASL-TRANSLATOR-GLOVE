@@ -1,0 +1,12 @@
+# ESP32 DevKit1 — on back of hand
+CONFIG_IDF_TARGET="esp32"
+CONFIG_IDF_TARGET_ESP32=y
+
+# High serial baud — the live PRY/stat output is too verbose for 115200 and
+# blocking serial writes would jitter the palm IMU sampling.
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=921600
+
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
+CONFIG_PARTITION_TABLE_SINGLE_APP=y

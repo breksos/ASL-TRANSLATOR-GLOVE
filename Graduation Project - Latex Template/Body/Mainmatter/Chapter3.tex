@@ -1,0 +1,113 @@
+\chapter{System Overview and Hardware Architecture}
+
+\section{Requirements}
+
+From the objectives in Chapter~1, the hardware must (i) sense all five fingers,
+(ii) transmit their data to a phone without a wired tether, (iii) be small and
+light enough to wear, and (iv) be buildable from affordable, available parts.
+These requirements drove the choice of one IMU per finger, an ESP32-class
+microcontroller per finger for local processing and radio, and a phone as the
+inference and output device.
+
+\section{Component Selection}
+
+Each finger module pairs a \textbf{Seeed Studio XIAO ESP32-C3} \cite{xiao} with
+an \textbf{InvenSense MPU6050} \cite{mpu6050}. The XIAO ESP32-C3 was chosen for
+its very small footprint, its integrated Wi-Fi/BLE radio (enabling both ESP-NOW
+and BLE), its USB-C interface for flashing and power, and its low cost. The
+MPU6050 provides the six axes of inertial data over I\textsuperscript{2}C and is
+likewise inexpensive and well documented. The phone runs a cross-platform
+Flutter application, so no platform-specific hardware is required on the output
+side.
+
+\section{The Finger Module}
+
+A finger module is a compact stack: the XIAO and the MPU6050 are soldered
+together with very short wires and separated by an insulating pad that also
+limits heat transfer from the microcontroller to the sensor; a second
+heat-spreading pad sits on top of the microcontroller and is left exposed to
+open air so it can actually dissipate heat rather than trap it. The complete
+stack mounts on the back of the fingertip (over the nail). Mounting on the
+nail—rather than along the finger segments—keeps the sensor on a rigid part of
+the finger, simplifies the wiring, and avoids fitting electronics into the
+knuckle gaps.
+
+The I\textsuperscript{2}C bus uses pins D4 (GPIO6, SDA) and D5 (GPIO7, SCL) on
+the XIAO at 400\,kHz. Each MPU6050 is configured with a digital low-pass filter
+at 10\,Hz, a gyroscope full-scale range of $\pm$500\,$^{\circ}$/s, and an
+accelerometer range of $\pm$4\,g.
+
+%% FIGURE: a photo of one nail-mounted XIAO+MPU module.
+%% To include: place the photo in Imgs/ (e.g. module.jpg) and uncomment:
+% \begin{figure}[!htbp]
+%     \centering
+%     \includegraphics[width=0.5\textwidth]{module.jpg}
+%     \caption{\label{fig:module}A nail-mounted finger module: XIAO ESP32-C3
+%     stacked over an MPU6050 with an isolating pad between them.}
+% \end{figure}
+
+\section{Network Topology: Master and Slaves}
+
+The five modules form a star network on the hand. The \textbf{middle-finger
+module is the master}; the \textbf{thumb, index, ring, and pinky modules are
+slaves}. Each slave reads and fuses its own IMU and transmits a small packet to
+the master over ESP-NOW at 25\,Hz. The master reads its own IMU, collects the
+latest packet from each slave, and assembles a single 45-channel feature vector
+(five fingers $\times$ nine fields), which it forwards to the phone over BLE.
+This topology is illustrated conceptually in Table~\ref{tab:topology}.
+
+\begin{table}[!htbp]
+\centering
+\caption{\label{tab:topology}Network roles and data paths.}
+\begin{tabular}{lll}
+\toprule
+Module (finger) & Role & Outgoing link \\
+\midrule
+Thumb (1)  & Slave  & ESP-NOW $\rightarrow$ master \\
+Index (2)  & Slave  & ESP-NOW $\rightarrow$ master \\
+Middle (3) & Master & BLE $\rightarrow$ phone \\
+Ring (4)   & Slave  & ESP-NOW $\rightarrow$ master \\
+Pinky (5)  & Slave  & ESP-NOW $\rightarrow$ master \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Evolution of the Design}
+
+The final architecture was reached iteratively, and the intermediate designs
+are instructive.
+
+\textbf{Iteration 1 — wrist hub with external antennas.} The first design used
+a separate ESP32 development board worn at the wrist as a receiver, and clipped
+an external U.FL antenna to each finger module to improve the radio link to the
+wrist. Measurements revealed three problems: the wrist-to-fingertip distance
+made the link sensitive to hand pose (a closed fist shadowed the inner
+fingers); the five external antennas, bunched together when the hand closed,
+coupled and interfered; and routing the antenna coax along moving fingers was
+mechanically fragile.
+
+\textbf{Iteration 2 — nail-mounted modules, no antennas, no hub.} Relocating
+the receiver onto the middle fingertip reduced the worst-case link distance
+from roughly 20\,cm (wrist) to a few centimetres (adjacent fingertip), which
+made the on-chip antennas more than sufficient and removed the external
+antennas and their coupling entirely. Because the master fingertip can talk to
+the phone directly over BLE, the separate wrist hub was also eliminated. This
+single change resolved the antenna-coupling, hand-shadowing, and
+mechanical-fragility problems together, and reduced the part count.
+
+\textbf{Sampling rate.} The data rate was reduced from an initial 50\,Hz to
+25\,Hz. At 50\,Hz the master could not reliably both receive four ESP-NOW
+streams and emit BLE notifications on a single radio; 25\,Hz leaves ample
+headroom, and human hand motion is well below the resulting 12.5\,Hz Nyquist
+limit, so no useful information is lost.
+
+\section{Power}
+
+For development and evaluation the glove is powered from a regulated 5\,V
+supply over USB-C; each XIAO regulates this to 3.3\,V on-board. Power integrity
+proved to be a practical constraint: the simultaneous radio transmissions of
+several modules produce brief current spikes, and a marginal supply or wiring
+path can sag the rail far enough to trigger the ESP32-C3 brown-out detector and
+reset a module. The mitigations—reducing the Wi-Fi transmit power to a level
+appropriate for a few-centimetre link, improving the power wiring, and adding
+local decoupling capacitance—are discussed with the evaluation in Chapter~7.

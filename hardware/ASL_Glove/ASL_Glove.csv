@@ -1,0 +1,12 @@
+"Id";"Designator";"Footprint";"Quantity";"Designation";"Supplier and ref";
+1;"C1, C3, C4";"C_0402_1005Metric";3;"100nF";;;
+2;"C2";"C_0402_1005Metric";1;"10uF";;;
+3;"J1";"JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal";1;"Conn_01x02";;;
+4;"R1, R2";"R_0402_1005Metric";2;"4.7k";;;
+5;"R3";"R_0402_1005Metric";1;"10k";;;
+6;"TP1";"TestPoint_Pad_D1.0mm";1;"TX";;;
+7;"TP2";"TestPoint_Pad_D1.0mm";1;"RX";;;
+8;"TP3";"TestPoint_Pad_D1.0mm";1;"GND";;;
+9;"TP4";"TestPoint_Pad_D1.0mm";1;"3V3";;;
+10;"U1";"ESP32-C3-MINI-1";1;"ESP32-C3-MINI-1";;;
+11;"U2";"InvenSense_QFN-24_4x4mm_P0.5mm";1;"MPU-6050";;;

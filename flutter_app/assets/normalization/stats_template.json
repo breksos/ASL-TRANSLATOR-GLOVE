@@ -1,0 +1,17 @@
+{
+  "_comment": "Per-channel scikit-learn StandardScaler statistics. Replace the placeholder zeros/ones with values exported from your Edge Impulse training (or compute mean/std across all training samples per channel). Rename this file to stats.json once filled in. 45 entries each, in the channel order documented in lib/config/ble_protocol.dart.",
+  "mean": [
+    0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0
+  ],
+  "std": [
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1
+  ]
+}

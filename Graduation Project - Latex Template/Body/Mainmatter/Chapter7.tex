@@ -1,0 +1,150 @@
+\chapter{Results and Evaluation}
+
+This chapter reports the measured behaviour of the system across four
+dimensions: the wireless link, on-device model performance, recognition
+accuracy, and power/thermal robustness. Where a result has an important
+limitation, it is stated plainly.
+
+\section{Wireless Link Reliability}
+
+With the master in BLE mode and all four slaves powered, the master's periodic
+diagnostics report the number of packets received from each finger over each
+five-second window. In a healthy run every finger reports approximately 125
+packets per five seconds—exactly the expected $25\,\text{Hz} \times 5\,\text{s}$
+—with the per-finger loss counters at zero (Table~\ref{tab:rf}). The BLE link,
+once the MTU is negotiated to 256 bytes, delivers the full 180-byte feature
+vector per notification at the same 25\,Hz. The architecture change from a
+wrist hub with external antennas to nail-mounted modules on the on-chip
+antennas was decisive here: at the few-centimetre finger-to-finger distance the
+link is no longer pose-dependent, and packet loss in the closed-fist
+configuration—previously the worst case—is negligible.
+
+\begin{table}[!htbp]
+\centering
+\caption{\label{tab:rf}Representative five-second link diagnostics from the
+master (BLE connected).}
+\begin{tabular}{lcc}
+\toprule
+Finger & Packets received & Lost \\
+\midrule
+Thumb  & 125 & 0 \\
+Index  & 125 & 0 \\
+Middle (own) & 125 & 0 \\
+Ring   & 125 & 0 \\
+Pinky  & 125 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{On-Device Model Performance}
+
+The deployed int8 model is small and fast (Table~\ref{tab:perf}). At roughly
+1\,ms per inference against a 40\,ms (25\,Hz) frame budget, inference latency is
+negligible, and the memory footprint is small enough for any modern phone. The
+gated-capture design means inference runs once per user request rather than
+continuously, so the practical compute and energy cost is lower still.
+
+\begin{table}[!htbp]
+\centering
+\caption{\label{tab:perf}On-device characteristics of the quantised model
+(Edge Impulse estimate, Raspberry Pi~4 class target).}
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+Inference time   & $\approx$ 1\,ms \\
+Peak RAM         & 22.7\,KB \\
+Flash (model)    & 137\,KB \\
+Quantisation     & int8 (input and output) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Recognition Accuracy}
+
+Several models were trained over the course of the project as the feature
+representation evolved. Table~\ref{tab:acc} summarises the held-out test
+accuracy of the main variants. The test sets are split off \emph{before}
+augmentation, so augmented copies of test samples never appear in training and
+the figures are not inflated by that form of leakage.
+
+\begin{table}[!htbp]
+\centering
+\caption{\label{tab:acc}Held-out test accuracy of the main model variants.
+All figures are within-session (training and test recorded in the same
+session); see the discussion on cross-session generalisation.}
+\begin{tabular}{lccc}
+\toprule
+Model & Classes & Features & Held-out accuracy \\
+\midrule
+Smoke set        & 5  & raw / static     & high (pipeline validation) \\
+Letters v2       & 26 & relative, static & $\approx$100\% \\
+Words            & 15 & absolute, dynamic& $\approx$100\% \\
+Letters v3       & 26 & absolute, dynamic& high \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The Single-Session Caveat}
+
+The held-out accuracies in Table~\ref{tab:acc} are high, but they are
+\emph{within-session}: each test set shares the same calibration, mounting, and
+thermal state as its training set. This is the easiest possible test and must
+not be read as the system's accuracy for a fresh user session. The honest
+measure of generalisation is cross-session—training on one or more sessions and
+testing on a different day with a fresh calibration—and the live testing
+described next is the practical proxy for it.
+
+\subsection{Live Findings and the Role of Feature Representation}
+
+Live testing was the experiment that drove the project's main finding. The
+static, absolute-feature letter model achieved high offline accuracy yet failed
+live, confidently confusing letters because the calibration pose could not be
+reproduced. Introducing the relative (orientation-invariant) transform removed
+this calibration sensitivity, but the thumb-cluster letters
+(\textbf{A}/\textbf{S}/\textbf{T}/\textbf{M}/\textbf{N}) remained confused
+live, confirming that their separation is limited by sensor resolution rather
+than by the feature transform. For the word model, the relative transform
+introduced a different failure: signs distinguished only by global hand
+orientation or translation (notably \textsc{you} vs \textsc{me}) collapsed,
+because mean-centering deliberately discards exactly that information; switching
+the word model to absolute features separated them again.
+
+These observations converge on a single conclusion: for inertial sign
+recognition on low-cost sensors, \emph{dynamic gestures with absolute features}
+are the robust choice, because the discriminative information then resides in
+the angular-rate channels, which are inherently independent of the start-up
+calibration. Re-recording the alphabet as distinctive per-letter motions and
+training on absolute features is the embodiment of this conclusion. A secondary
+but practical finding is that a dynamic gesture must fill the capture window: a
+sign with a long still tail drifts toward whichever class has the least motion,
+which then acts as an attractor for ambiguous captures.
+
+\section{Power and Thermal Behaviour}
+
+The peak instantaneous current of the whole glove is dominated by simultaneous
+radio transmissions. With the Wi-Fi transmit power at its maximum, a slave's
+transmit burst draws on the order of 300\,mA; in the pathological case of all
+four slaves transmitting in the same instant the system peak approaches
+1.5\,A, although the phase-staggered transmissions make full alignment
+momentary. The average draw is far lower, on the order of a few hundred
+milliamps.
+
+This peak is the source of the most disruptive failure observed: a marginal
+supply or wiring path sags the 3.3\,V rail far enough during a transmit burst to
+trip the ESP32-C3 brown-out detector and reset a module, which in the logs
+appears as a repeated reboot and (on the affected board) erratic sensor reads.
+Because the transmit current is the trigger, the primary mitigation is to
+reduce the Wi-Fi transmit power: the finger-to-finger link spans only a few
+centimetres and has tens of decibels of margin, so a much lower transmit power
+both removes the current spike and reduces self-heating, with no loss of link
+reliability. Improving the power wiring and adding local decoupling capacitance
+at each module are complementary hardware mitigations. Reducing the transmit
+power changes only the radio, not the sensor data, so it requires no
+re-collection of data or re-training.
+
+Separately, the proximity of the microcontroller to the IMU within each nail
+module warms the gyroscope over a session, which shifts its zero-rate bias.
+This is handled in firmware by the continuous still-state bias tracking
+(Chapter~4) and is a further reason the motion-based, calibration-independent
+features were preferred.

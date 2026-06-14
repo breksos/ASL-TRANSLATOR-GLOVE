@@ -1,0 +1,24 @@
+{
+  "schematic": "C:\\Users\\ASUS\\Desktop\\Projeler\\ASL\\ASL_Glove_PCB\\ASL_Glove\\ASL_Glove.kicad_sch",
+  "last_sync": "2026-04-03T15:18:57.477280+00:00",
+  "parts": {
+    "MPU-6050": {
+      "mpn": "MPU-6050",
+      "file": "MPU-6050.pdf",
+      "url": "https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf",
+      "source": "url_property",
+      "components": [
+        "U2"
+      ]
+    },
+    "ESP32-C3-DevKitM-1": {
+      "mpn": "ESP32-C3-DevKitM-1",
+      "file": "ESP32-C3_datasheet.pdf",
+      "url": "https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf",
+      "source": "url_property",
+      "components": [
+        "U1"
+      ]
+    }
+  }
+}

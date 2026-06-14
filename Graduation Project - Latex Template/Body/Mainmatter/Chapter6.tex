@@ -1,0 +1,70 @@
+\chapter{Mobile Application}
+
+The mobile application, built with Flutter for cross-platform deployment,
+performs three roles: it manages the BLE link to the glove, it runs the
+on-device neural network, and it presents recognised gestures as text and
+speech.
+
+\section{Architecture}
+
+The application is organised into services with clear responsibilities: a BLE
+service that handles scanning, connection, and packet parsing; an inference
+service that buffers sensor frames and runs the model; a text-to-speech
+service; and a preferences service that holds the per-model configuration. The
+main screen is a single capture-and-display view; a segmented control switches
+between the \emph{Letters} and \emph{Words} models.
+
+\section{Bluetooth Link and Packet Parsing}
+
+On connection the BLE service requests the appropriate runtime permissions,
+scans for the glove by address (falling back to its advertised name), connects,
+and—crucially—negotiates a larger MTU before subscribing to the notify
+characteristic (Chapter~4). Each 180-byte notification is parsed into 45
+little-endian floats forming one sensor frame, which is pushed into a fixed-%
+size rolling buffer. Frames are rejected if their length is wrong or any value
+is non-finite. The Android manifest declares the modern \texttt{BLUETOOTH\_%
+SCAN} and \texttt{BLUETOOTH\_CONNECT} permissions; an early bug, in which the
+app required a location permission that the manifest no longer declared on
+recent Android, was traced to this and fixed.
+
+\section{Gated Capture}
+
+Rather than classifying continuously, the application uses \emph{gated
+capture}, mirroring the data-collection procedure exactly. The user presses a
+\textbf{Listen} button; the screen shows a brief countdown so the signer can
+prepare, then a clear ``sign now'' cue while a fresh window of sensor frames is
+collected; the model is then run once on that window. This guarantees that the
+window seen at inference matches the window used during training, and it makes
+the device's behaviour predictable and demonstrable. It also matches how
+fingerspelling is naturally performed: one deliberate gesture at a time.
+
+\section{On-Device Inference Pipeline}
+
+When a window is captured, the inference service applies, in order: (i) the
+per-model feature transform (the relative transform for a relative model, or
+none for an absolute model), (ii) standard-scaler normalisation using the
+model's exported statistics, (iii) quantisation of the normalised values to
+int8 using the input tensor's scale and zero-point, (iv) execution of the
+TensorFlow Lite model, and (v) dequantisation of the int8 output back to class
+probabilities, followed by an arg-max. Each of these steps must agree exactly
+with the training pipeline; the feature transform and the normalisation
+statistics are therefore selected \emph{per model} (Section~\ref{sec:permodel}).
+
+\section{Per-Model Configuration}\label{sec:permodel}
+
+The Letters and Words models have different class sets, different normalisation
+statistics, and—in principle—could use different feature transforms. The
+application therefore swaps the model file, the label list, the normalisation
+statistics, and the transform flag together whenever the user changes mode. A
+subtle bug class this avoids is silently using one model's normalisation with
+another model's weights; the normaliser is reset on each load so a failed swap
+can never leave stale statistics in place.
+
+\section{Output}
+
+In Words mode, a recognised sign is spoken immediately through text-to-speech.
+In Letters mode, recognised letters accumulate into a text buffer so the user
+can fingerspell a word; a \textbf{Speak} button reads the assembled word aloud
+and a \textbf{Clear} button empties the buffer to start again. A confidence
+threshold suppresses low-confidence predictions so that an uncertain capture
+asks the user to try again rather than committing a wrong letter.

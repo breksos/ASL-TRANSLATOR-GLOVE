@@ -1,0 +1,97 @@
+\chapter{Firmware and Sensor Signal Processing}
+
+The firmware exists in two roles, sharing a common signal-processing core: the
+\emph{slave} sketch (thumb, index, ring, pinky) and the \emph{master} sketch
+(middle finger). Both are written for the Arduino-ESP32 framework.
+
+\section{Per-Finger Signal Processing}
+
+Every module, master or slave, processes its own IMU identically.
+
+\subsection{Acquisition and Filtering}
+
+The MPU6050 is read over I\textsuperscript{2}C at 25\,Hz. The on-sensor digital
+low-pass filter is set to 10\,Hz, which removes high-frequency mechanical noise
+before sampling. A bus-recovery routine bit-bangs the clock line and
+re-initialises the sensor if a sequence of reads fails, so a transient
+I\textsuperscript{2}C stall does not permanently disable a finger.
+
+\subsection{Orientation Estimation}
+
+Pitch and roll are estimated by fusing the accelerometer and gyroscope with a
+two-state Kalman filter \cite{kalman} per axis, with the angle and the gyro
+bias as states. When the magnitude of the measured acceleration departs from
+$1\,g$ (indicating linear motion rather than pure gravity), the filter trusts
+the gyroscope more and gates out the unreliable accelerometer tilt. Yaw, which
+a six-axis IMU cannot reference absolutely, is obtained by integrating the
+bias-corrected $z$-axis angular rate with a small dead-band, and is reset to
+zero after a sustained period of stillness to bound its drift.
+
+\subsection{Calibration and Bias Tracking}
+
+At start-up each module performs a stillness calibration: it averages several
+hundred samples to establish the zero references for pitch and roll and the
+initial gyroscope bias, rejecting the attempt if the measured variance shows
+the hand was moving. During operation, whenever the module detects stillness
+(low angular rate and acceleration close to $1\,g$), it slowly updates the
+gyroscope bias with an exponential moving average. This continuously tracks the
+bias drift caused by the microcontroller warming the adjacent sensor, which is
+significant for a low-cost gyroscope and is one reason motion-based features
+later proved more robust than absolute-orientation features.
+
+\subsection{Packet Format}
+
+Each module produces, per cycle, a packet of nine fields: the three fused
+angles (pitch, roll, yaw), the three bias-corrected angular rates
+($g_x,g_y,g_z$), and the three accelerations ($a_x,a_y,a_z$). A slave sends
+this as a small fixed-size structure tagged with its finger identifier and a
+sequence number.
+
+\section{The Slave Sketch}
+
+A slave runs a deadline-scheduled 25\,Hz loop. Each cycle it reads and fuses
+its IMU, builds its packet, and transmits it by ESP-NOW \emph{unicast} to the
+master's address on a fixed Wi-Fi channel. A staggered start-up delay
+per finger reduces the chance that all four slaves transmit in the same
+instant. The module also prints a periodic diagnostic line (read success rate,
+transmit success/failure counts, current angles) over USB for bench debugging.
+
+\section{The Master Sketch}
+
+The master is dual-purpose, selected at compile time:
+
+\begin{itemize}
+    \item \textbf{CSV mode} streams every received packet, plus its own, as
+    comma-separated lines over USB at 921600\,baud. This feeds the data-%
+    collection script (Chapter~5). The high baud rate is necessary: at
+    115200\,baud the five-finger stream saturates the USB serial buffer, the
+    blocking print inside the receive callback backs up, and 15--30\% of
+    packets are dropped—a failure that was diagnosed and fixed by raising the
+    baud rate.
+    \item \textbf{BLE mode} exposes a GATT service with a notify
+    characteristic. Each 25\,Hz cycle the master reads its own IMU, packs the
+    five fingers' nine fields into a 180-byte payload (45 little-endian 32-bit
+    floats), and sends it as a BLE notification to the connected phone. A
+    finger whose data has not arrived recently is sent as zeros so the payload
+    is always well-formed.
+\end{itemize}
+
+\subsection{Aggregation and Channel Order}
+
+The master keeps the latest packet from each finger in a lock-protected table.
+The 45 channels are emitted in a fixed finger-major order—thumb, index, middle,
+ring, pinky—each contributing $P,R,Y,g_x,g_y,g_z,a_x,a_y,a_z$. This exact order
+is mirrored in the data-collection script and in the phone application, so that
+the model sees identically ordered channels everywhere.
+
+\subsection{Radio Coexistence and the BLE MTU}
+
+The master runs ESP-NOW (Wi-Fi physical layer) reception and BLE transmission
+on a single radio, which the ESP32-C3 time-slices. At 25\,Hz this is
+comfortable. One non-obvious requirement is the BLE \emph{maximum transmission
+unit}: the default 23-byte MTU carries only 20 payload bytes per notification,
+far short of the 180-byte feature vector, so the phone must negotiate a larger
+MTU (247 bytes requested, 256 granted) immediately after connecting. Without
+this negotiation the notifications are truncated and silently rejected by the
+phone—a failure that initially presented as ``no data'' despite a healthy
+radio link.

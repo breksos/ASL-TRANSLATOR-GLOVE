@@ -1,0 +1,45 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+%% Edit below this line
+Sign language is the primary means of communication for millions of deaf and
+hard-of-hearing people, yet the scarcity of interpreters in everyday settings
+creates a persistent barrier with the hearing world. This project presents a
+self-contained, wearable glove that recognises American Sign Language (ASL)
+gestures and translates them into spoken output in real time, without a camera
+or any external infrastructure.
+
+The system places a compact inertial measurement unit (MPU6050) and a
+microcontroller (Seeed Studio XIAO ESP32-C3) on the nail of each of the five
+fingers. Four ``slave'' modules stream fused orientation and angular-rate data
+over the ESP-NOW protocol to a fifth ``master'' module on the middle finger,
+which aggregates a 45-channel feature vector at 25\,Hz and forwards it to a
+mobile phone over Bluetooth Low Energy. A Flutter application captures a
+fixed-length window of sensor data on demand, runs a quantised one-dimensional
+convolutional neural network entirely on-device, and speaks the recognised
+letter or word through text-to-speech.
+
+A central finding of the work is the decisive role of the feature
+representation. Static handshape recognition based on absolute finger
+orientation proved fragile, because the inertial reference frame cannot be
+reproduced exactly between sessions and because the limited angular resolution
+of the sensors cannot separate handshapes that differ only by small thumb
+displacements. The project therefore adopts distinctive per-letter
+\emph{motions} together with \emph{absolute} (non-orientation-normalised)
+features, relocating the discriminative information into the
+calibration-independent angular-rate channels. The deployed models occupy
+137\,KB of flash, require 22.7\,KB of RAM, and execute in approximately 1\,ms
+per inference; the wireless link delivers all five finger streams at 25\,Hz
+with negligible packet loss. The project demonstrates that accurate,
+low-latency, fully on-device sign-language translation is achievable on
+inexpensive commodity hardware, and it documents the engineering trade-offs—%
+radio coexistence, power integrity, thermal behaviour, and feature
+invariance—that govern such a system.
+
+%% Until here
+\vfill
+%% Edit after {Keywords:}
+\textbf{Keywords:} sign language recognition, wearable computing, inertial
+measurement unit, ESP-NOW, Bluetooth Low Energy, edge machine learning,
+one-dimensional convolutional neural network, gesture recognition.
+\clearpage

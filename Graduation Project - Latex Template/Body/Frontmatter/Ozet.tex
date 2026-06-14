@@ -1,0 +1,45 @@
+\chapter*{Özet}
+\addcontentsline{toc}{chapter}{Özet}
+
+%% Edit below this line
+İşaret dili, milyonlarca işitme engelli birey için temel iletişim aracıdır;
+ancak günlük hayatta tercüman bulunmaması, işiten dünya ile aralarında sürekli
+bir iletişim engeli oluşturmaktadır. Bu proje, Amerikan İşaret Dili (ASL)
+hareketlerini tanıyıp gerçek zamanlı olarak sesli çıktıya dönüştüren, kamera
+veya herhangi bir dış altyapı gerektirmeyen, kendi kendine yeten giyilebilir
+bir eldiven sunmaktadır.
+
+Sistem, beş parmağın her birinin tırnağına kompakt bir eylemsizlik ölçüm
+birimi (MPU6050) ve bir mikrodenetleyici (Seeed Studio XIAO ESP32-C3)
+yerleştirir. Dört ``uydu'' modül, füzyonlanmış yönelim ve açısal hız
+verilerini ESP-NOW protokolü üzerinden orta parmaktaki beşinci ``ana'' modüle
+iletir. Ana modül, 25\,Hz hızında 45 kanallı bir öznitelik vektörü oluşturarak
+bunu Bluetooth Düşük Enerji (BLE) üzerinden bir akıllı telefona aktarır. Bir
+Flutter uygulaması, istek üzerine sabit uzunlukta bir sensör penceresi
+yakalar, nicelenmiş tek boyutlu bir evrişimsel sinir ağını tamamen cihaz
+üzerinde çalıştırır ve tanınan harf veya kelimeyi metinden konuşmaya çevirme
+ile seslendirir.
+
+Çalışmanın temel bulgularından biri, öznitelik temsilinin belirleyici
+önemidir. Mutlak parmak yönelimine dayalı statik el şekli tanıma, eylemsizlik
+referans çerçevesinin oturumlar arasında tam olarak yeniden üretilememesi ve
+sensörlerin sınırlı açısal çözünürlüğünün yalnızca küçük başparmak
+hareketleriyle ayrılan el şekillerini ayırt edememesi nedeniyle kırılgan
+kalmıştır. Bu nedenle proje, ayırt edici bilgiyi kalibrasyondan bağımsız
+açısal hız kanallarına taşıyan, harfe özgü belirgin \emph{hareketler} ile
+\emph{mutlak} öznitelikleri benimsemiştir. Dağıtılan modeller 137\,KB flash ve
+22.7\,KB RAM kullanır ve çıkarım başına yaklaşık 1\,ms sürede çalışır; kablosuz
+bağlantı beş parmağın tüm akışlarını 25\,Hz hızında ihmal edilebilir paket
+kaybıyla iletir. Proje, düşük maliyetli, yaygın donanım üzerinde doğru, düşük
+gecikmeli ve tamamen cihaz içi işaret dili çevirisinin uygulanabilir olduğunu
+göstermekte ve böyle bir sistemi yöneten mühendislik ödünleşimlerini—radyo
+birlikte çalışabilirliği, güç bütünlüğü, termal davranış ve öznitelik
+değişmezliği—belgelemektedir.
+
+%% Until here
+\vfill
+%% Edit after {Anahtar Kelimeler:}
+\textbf{Anahtar Kelimeler:} işaret dili tanıma, giyilebilir teknoloji,
+eylemsizlik ölçüm birimi, ESP-NOW, Bluetooth Düşük Enerji, uç birim makine
+öğrenmesi, tek boyutlu evrişimsel sinir ağı, hareket tanıma.
+\clearpage

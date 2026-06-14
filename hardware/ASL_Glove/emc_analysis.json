@@ -1,0 +1,188 @@
+{
+  "summary": {
+    "total_checks": 5,
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 2,
+    "info": 1,
+    "emc_risk_score": 87
+  },
+  "target_standard": "fcc-class-b",
+  "findings": [
+    {
+      "category": "decoupling",
+      "severity": "HIGH",
+      "rule_id": "DC-001",
+      "title": "Decoupling cap too far from U1",
+      "description": "Nearest decoupling cap to U1 (ESP32-C3-MINI-1) is 9.1mm away. Each mm of trace adds 0.3-0.8 nH of loop inductance, reducing decoupling effectiveness at high frequencies.",
+      "components": [
+        "U1",
+        "C2",
+        "C1"
+      ],
+      "nets": [],
+      "recommendation": "Move decoupling cap within 2-3mm of U1 power pins."
+    },
+    {
+      "category": "via_stitching",
+      "severity": "MEDIUM",
+      "rule_id": "VS-001",
+      "title": "Via stitching may be insufficient",
+      "description": "Board has 0 vias across 1088 mm\u00b2 (no vias detected). For the highest frequency on this board (150 MHz), \u03bb/20 stitching requires \u226448mm spacing.",
+      "components": [],
+      "nets": [],
+      "recommendation": "Add ground stitching vias at \u226448mm intervals, especially at board edges and near connectors."
+    },
+    {
+      "category": "io_filtering",
+      "severity": "LOW",
+      "rule_id": "IO-001",
+      "title": "No EMC filtering near JP1",
+      "description": "Connector JP1 (ROLE_SEL) has no ferrite bead, CM choke, or ESD protection within 25mm. Unfiltered I/O cables are the dominant source of radiated emissions \u2014 common-mode current as low as 5 \u00b5A can exceed FCC Class B.",
+      "components": [
+        "JP1"
+      ],
+      "nets": [],
+      "recommendation": "Add a ferrite bead (e.g., BLM18AG601SN1D, 600\u03a9@100MHz) on signal lines near JP1. Add ESD/TVS protection for external interfaces."
+    },
+    {
+      "category": "io_filtering",
+      "severity": "LOW",
+      "rule_id": "IO-001",
+      "title": "No EMC filtering near J1",
+      "description": "Connector J1 (Conn_01x02) has no ferrite bead, CM choke, or ESD protection within 25mm. Unfiltered I/O cables are the dominant source of radiated emissions \u2014 common-mode current as low as 5 \u00b5A can exceed FCC Class B.",
+      "components": [
+        "J1"
+      ],
+      "nets": [],
+      "recommendation": "Add a ferrite bead (e.g., BLM18AG601SN1D, 600\u03a9@100MHz) on signal lines near J1. Add ESD/TVS protection for external interfaces."
+    },
+    {
+      "category": "emission_estimate",
+      "severity": "INFO",
+      "rule_id": "EE-001",
+      "title": "Board cavity resonance frequencies",
+      "description": "Board (32\u00d734mm, \u03b5r=4.4) cavity resonances: (0,1) at 2102 MHz; (1,0) at 2233 MHz. PDN impedance spikes at these frequencies. Ensure adequate decoupling at and around these frequencies.",
+      "components": [],
+      "nets": [],
+      "recommendation": "Add decoupling capacitors with SRF near these frequencies."
+    }
+  ],
+  "per_net_scores": [],
+  "test_plan": {
+    "frequency_bands": [
+      {
+        "band": "30-88 MHz",
+        "freq_min_hz": 30000000.0,
+        "freq_max_hz": 88000000.0,
+        "risk_level": "none",
+        "source_count": 0,
+        "sources": []
+      },
+      {
+        "band": "88-216 MHz",
+        "freq_min_hz": 88000000.0,
+        "freq_max_hz": 216000000.0,
+        "risk_level": "none",
+        "source_count": 0,
+        "sources": []
+      },
+      {
+        "band": "216-960 MHz",
+        "freq_min_hz": 216000000.0,
+        "freq_max_hz": 960000000.0,
+        "risk_level": "none",
+        "source_count": 0,
+        "sources": []
+      },
+      {
+        "band": "960-40000 MHz",
+        "freq_min_hz": 960000000.0,
+        "freq_max_hz": 40000000000.0,
+        "risk_level": "none",
+        "source_count": 0,
+        "sources": []
+      }
+    ],
+    "interface_risks": [
+      {
+        "connector": "JP1",
+        "value": "ROLE_SEL",
+        "protocol": "unknown",
+        "risk_score": 5,
+        "reasons": [
+          "No EMC filtering detected"
+        ]
+      },
+      {
+        "connector": "J1",
+        "value": "Conn_01x02",
+        "protocol": "unknown",
+        "risk_score": 5,
+        "reasons": [
+          "No EMC filtering detected"
+        ]
+      }
+    ],
+    "probe_points": [
+      {
+        "x": 132.0,
+        "y": 78.5,
+        "type": "unfiltered_connector",
+        "ref": "JP1",
+        "reason": "Unfiltered I/O \u2014 cable radiation risk"
+      },
+      {
+        "x": 125.0,
+        "y": 83.0,
+        "type": "unfiltered_connector",
+        "ref": "J1",
+        "reason": "Unfiltered I/O \u2014 cable radiation risk"
+      }
+    ]
+  },
+  "regulatory_coverage": {
+    "market": "us",
+    "applicable_standards": [
+      "FCC Part 15 Class B",
+      "FCC Part 15 Class B"
+    ],
+    "coverage_matrix": [
+      {
+        "standard": "FCC Part 15 Class B",
+        "test_type": "radiated",
+        "coverage": "minimal",
+        "checked_rules": [
+          "DC-001",
+          "VS-001",
+          "IO-001",
+          "EE-001"
+        ],
+        "total_applicable_rules": 23,
+        "note": "Design rule checks identify common radiation sources. Cannot predict absolute emission levels."
+      },
+      {
+        "standard": "FCC Part 15 Class B",
+        "test_type": "conducted",
+        "coverage": "minimal",
+        "checked_rules": [
+          "DC-001"
+        ],
+        "total_applicable_rules": 4,
+        "note": "Switching harmonic analysis and decoupling checks. EMI filter verification not yet implemented."
+      }
+    ]
+  },
+  "board_info": {
+    "board_width_mm": 32.0,
+    "board_height_mm": 34.0,
+    "layer_count": 2,
+    "footprint_count": 15,
+    "via_count": 0,
+    "has_stackup": false,
+    "total_components": 15,
+    "total_nets": 36
+  },
+  "elapsed_s": 0.001
+}

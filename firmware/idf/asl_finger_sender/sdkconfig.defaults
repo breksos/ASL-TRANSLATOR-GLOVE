@@ -1,0 +1,15 @@
+# XIAO ESP32-C3 — one per finger
+CONFIG_IDF_TARGET="esp32c3"
+CONFIG_IDF_TARGET_ESP32C3=y
+
+# Performance over size for the 50 Hz loop
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# 1 ms FreeRTOS tick so vTaskDelay can resolve a 20 ms period cleanly
+CONFIG_FREERTOS_HZ=1000
+
+# Stronger watchdog tolerance — the busy-wait spin at the end of the deadline
+# scheduler is short but should never trip the IWDT.
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
+
+CONFIG_PARTITION_TABLE_SINGLE_APP=y

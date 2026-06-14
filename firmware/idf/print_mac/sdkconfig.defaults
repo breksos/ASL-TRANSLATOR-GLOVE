@@ -1,0 +1,6 @@
+# Default target: XIAO ESP32-C3 (sender boards). For the ESP32 DevKit1, run
+#   idf.py set-target esp32
+# before building.
+CONFIG_IDF_TARGET="esp32c3"
+CONFIG_IDF_TARGET_ESP32C3=y
+CONFIG_PARTITION_TABLE_SINGLE_APP=y

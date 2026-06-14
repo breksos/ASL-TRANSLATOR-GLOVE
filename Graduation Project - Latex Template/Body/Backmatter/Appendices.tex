@@ -1,0 +1,42 @@
+\chapter*{Appendices}
+\addcontentsline{toc}{chapter}{Appendices}
+
+\section*{Appendix 1: Channel Layout of the Feature Vector}
+
+Each 25\,Hz sample is a 45-channel vector in finger-major order. For each finger
+in the order thumb, index, middle, ring, pinky, the nine fields are: pitch (P),
+roll (R), yaw (Y), angular rate about $x$/$y$/$z$ ($g_x,g_y,g_z$), and linear
+acceleration along $x$/$y$/$z$ ($a_x,a_y,a_z$). This ordering is identical in
+the data-collection script, the master firmware payload, the normalisation
+statistics, and the mobile application's parser.
+
+\section*{Appendix 2: Vocabulary}
+
+\textbf{Letters:} the 26 letters A--Z. Most are encoded as short, distinctive
+finger motions; J and Z are the inherently dynamic ASL letters.
+
+\textbf{Words (15 one-handed signs):} DRINK, EAT, FINE, HELLO, ILOVEYOU, ME,
+NO, PLEASE, SORRY, STOP, THANKYOU, WATER, WHERE, YES, YOU.
+
+\section*{Appendix 3: Key System Parameters}
+
+\begin{tabular}{ll}
+\toprule
+Parameter & Value \\
+\midrule
+Fingers / channels        & 5 / 45 \\
+Sampling rate             & 25\,Hz \\
+Capture window            & 3\,s (75 time steps) \\
+ESP-NOW channel           & 11 \\
+BLE MTU (negotiated)      & 256 bytes \\
+BLE payload               & 180 bytes (45 float32) \\
+Master CSV baud rate      & 921600 \\
+Model quantisation        & int8 (input and output) \\
+\bottomrule
+\end{tabular}
+
+\section*{Appendix 4: Source Code}
+
+The firmware, data-processing scripts, and mobile application are organised in
+the project repository under \texttt{firmware/}, \texttt{scripts/}, and
+\texttt{flutter\_app/} respectively.

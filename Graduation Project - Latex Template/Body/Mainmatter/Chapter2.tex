@@ -1,0 +1,88 @@
+\chapter{Background and Related Work}
+
+\section{Sign Language and Fingerspelling}
+
+A signed language conveys meaning through handshape, orientation, location,
+movement, and non-manual markers such as facial expression. ASL has a
+dedicated set of one-handed handshapes for the letters of the alphabet, used
+for \emph{fingerspelling}—spelling out words letter by letter—which is common
+for names and for words that lack a dedicated sign. Most letters are static
+handshapes; two, \textbf{J} and \textbf{Z}, are defined by a traced motion.
+Word-level signs are typically dynamic and may be one- or two-handed. Because
+the device in this project instruments a single hand, the vocabulary is
+restricted to fingerspelling and to one-handed word signs.
+
+A practical consequence for sensing is that several fingerspelling letters
+differ only in subtle thumb placement against a closed fist—for example
+\textbf{A}, \textbf{S}, \textbf{T}, \textbf{M}, and \textbf{N}. The ability of
+any sensing modality to separate these handshapes is therefore a key indicator
+of its resolution.
+
+\section{Approaches to Sign Language Recognition}
+
+Sign-language recognition (SLR) systems fall broadly into two families.
+
+\textbf{Vision-based} systems use one or more cameras and computer-vision or
+deep-learning models to interpret hand and body pose. They require no
+instrumentation of the signer but depend on controlled lighting, a clear line
+of sight, and significant computation, and they raise privacy concerns because
+they continuously capture video.
+
+\textbf{Sensor-based (glove)} systems instrument the hand directly with
+sensors such as flex sensors, which measure finger bend, or inertial
+measurement units (IMUs), which measure orientation and motion. Gloves work in
+any lighting, do not capture the surroundings, and can run on small
+microcontrollers, at the cost of requiring the user to wear the device. This
+project adopts the glove approach using IMUs, which—unlike flex sensors—capture
+both static finger orientation and dynamic motion, and are available as
+inexpensive, easily interfaced modules.
+
+\section{Inertial Measurement Units and Sensor Fusion}
+
+An IMU such as the InvenSense MPU6050 \cite{mpu6050} integrates a three-axis
+gyroscope and a three-axis accelerometer. The accelerometer measures the
+gravity vector (giving an absolute tilt reference) plus linear acceleration;
+the gyroscope measures angular rate. Neither sensor alone yields a stable
+orientation: accelerometer-only tilt is corrupted by motion, while integrating
+the gyroscope alone accumulates drift.
+
+\emph{Sensor fusion} combines the two to obtain a stable estimate. The Kalman
+filter \cite{kalman} is the classical optimal estimator for this purpose and is
+widely used to fuse accelerometer and gyroscope measurements into pitch and
+roll angles. A practical complication is that the gyroscope's zero-rate bias
+drifts with temperature; this is commonly mitigated by continuously
+re-estimating the bias whenever the device is detected to be still. Both
+techniques are used in this project's firmware (Chapter~4).
+
+A fundamental limitation of a six-axis IMU is that yaw (rotation about the
+gravity axis) cannot be referenced absolutely without a magnetometer, and that
+small static orientation differences are near the noise floor of a low-cost
+part. These limitations directly shape the feature-representation findings of
+Chapter~5.
+
+\section{Wireless Protocols for Wearables}
+
+Body-worn sensor networks require a short-range, low-power link. Two relevant
+technologies are used here. \textbf{ESP-NOW} \cite{espnow} is a connectionless,
+low-latency protocol built on the Wi-Fi physical layer by Espressif, well
+suited to many-to-one streaming between ESP32-family devices without the
+overhead of a full Wi-Fi association. \textbf{Bluetooth Low Energy (BLE)} is
+the standard for communicating with smartphones; its GATT profile exposes
+\emph{characteristics} that a phone can subscribe to for streaming
+notifications. The system in this thesis uses ESP-NOW for finger-to-finger
+communication and BLE for the final hop to the phone (Chapter~3).
+
+\section{Machine Learning at the Edge}
+
+Running inference on a constrained device (``edge'' or ``TinyML'') requires
+small models and efficient execution. Two ideas are central. First,
+\textbf{one-dimensional convolutional neural networks (1-D CNNs)} are an
+effective and lightweight architecture for time-series and human-activity
+recognition \cite{ronao2016, hatcnn}, learning local temporal patterns with far
+fewer parameters than recurrent models. Second, \textbf{quantisation} converts
+a trained 32-bit floating-point model to 8-bit integers, shrinking it roughly
+four-fold and accelerating inference, usually with negligible accuracy loss;
+TensorFlow Lite \cite{tflite} provides this conversion and a portable runtime.
+The models in this project are 1-D CNNs trained with the Edge Impulse platform
+\cite{edgeimpulse} and deployed as int8 TensorFlow Lite files inside a mobile
+application.

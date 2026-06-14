@@ -1,0 +1,116 @@
+\chapter{Data Acquisition, Feature Engineering, and Modelling}
+
+This chapter describes how gesture data is collected, how it is represented,
+and how the recognition model is trained and deployed. The feature-%
+representation study in Section~\ref{sec:features} is the central technical
+contribution of the project.
+
+\section{Data Acquisition}
+
+Data is collected with the master in CSV mode (Chapter~4) connected to a
+laptop, driven by a Python recorder. The operator selects a label, the recorder
+shows a short countdown, and a fixed-length window is captured while the
+gesture is performed. Each saved sample is a CSV file of 75 rows
+($3\,\text{s} \times 25\,\text{Hz}$) and 45 channels. The recorder forward-fills
+the most recent packet from each finger onto a uniform time grid and flags
+samples in which any finger's data went stale, so that dropped-packet windows
+can be discarded.
+
+\section{Signal Window and Channels}
+
+A gesture is represented by a $75 \times 45$ window: 75 time steps of the 45
+channels defined in Chapter~4. This window length and channel order are fixed
+across data collection, training, and on-device inference. Matching them
+exactly—\emph{train/inference parity}—is essential; a mismatch in window
+length, sampling rate, or channel order silently degrades or breaks live
+accuracy even when offline metrics look perfect.
+
+\section{Feature Representation}\label{sec:features}
+
+The most important design question proved to be \emph{what} the model sees, not
+which classifier is used.
+
+\subsection{The Problem with Absolute Orientation for Static Handshapes}
+
+A natural first representation is the absolute fused orientation of each finger.
+This failed in live use for static fingerspelling in two distinct ways. First,
+the absolute pitch/roll of each finger is measured relative to the start-up
+calibration pose, which a user cannot reproduce exactly between sessions; a few
+degrees of difference in how the hand is held shifts every channel and causes
+confident misclassification. Second, even with perfect calibration, letters
+that differ only by small thumb placement (e.g.\ \textbf{A} vs \textbf{T}) lie
+within the angular noise floor of the sensors and cannot be separated.
+
+\subsection{Relative (Orientation-Invariant) Features}
+
+To address the calibration sensitivity, an orientation-invariant transform was
+introduced. For the orientation-bearing channels ($P,R,Y,a_x,a_y,a_z$), the
+per-time-step mean across the five fingers is subtracted, leaving only the
+\emph{inter-finger} differences; the angular-rate channels are left unchanged.
+Because a global rotation of the hand (or a calibration offset) adds the same
+amount to all five fingers, subtracting their mean cancels it, while the
+relative finger configuration—which defines the handshape—is preserved. This
+made static-letter features invariant to global hand tilt and to the
+calibration pose.
+
+Relative features removed the calibration sensitivity but, as expected, could
+not overcome the sensor-resolution limit: the thumb-cluster letters remained
+confusable, because the information that separates them was never captured by
+the sensors in the first place.
+
+\subsection{Dynamic Gestures with Absolute Features}
+
+The resolution of both problems was to change the gestures rather than only the
+features. Each letter (except the inherently dynamic \textbf{J} and \textbf{Z})
+was re-recorded as a short, distinctive \emph{motion} that engages specific
+fingers—for example a thumb fold, an index-and-thumb tap, or a thumb-and-pinky
+meeting—so that the discriminative information lives in the angular-rate
+($g$) channels. The angular rate is a measurement of motion and is inherently
+independent of the start-up calibration, so \emph{absolute} features (no
+mean-centering) can be used. This dynamic-gesture, absolute-feature formulation
+is used for both the letter and the word models. A small number of practical
+rules emerged: the motion must fill the whole capture window (a gesture with a
+long still tail collapses toward a low-motion ``attractor'' class), and within
+a confusable group the motions must differ clearly in axis, direction, or
+repetition count.
+
+The same logic was confirmed for word signs. Word pairs distinguished only by
+global hand orientation or translation (e.g.\ \textsc{you} vs \textsc{me})
+collapsed under mean-centering—which deliberately discards exactly that
+information—and were correctly separated once absolute features were used.
+
+\section{Augmentation and Dataset Splitting}
+
+Recording every gesture across many sessions is time-consuming, so synthetic
+augmentation is used to improve robustness to session-to-session variation.
+For each training sample, several copies are generated with small random
+per-finger angle offsets, small per-finger gyroscope-bias offsets, and
+per-reading sensor noise—simulating realistic calibration and thermal variance
+without re-recording. Critically, the train/test split is performed
+\emph{before} augmentation and on the original samples only, so that no
+augmented copy of a test sample can appear in training. This leakage-safe
+procedure keeps the held-out test set an honest measure of generalisation.
+
+\section{Network Architecture}
+
+The classifier is a compact one-dimensional convolutional neural network
+\cite{ronao2016}. The flattened input is reshaped to $75 \times 45$ and passed
+through two convolutional blocks—each a 1-D convolution, batch normalisation,
+max-pooling, and dropout (16 then 32, or 32 then 64, filters, kernel size
+3)—followed by a flatten, a dense layer, dropout, and a softmax output over the
+classes. The architecture was authored in Keras through Edge Impulse's expert
+mode \cite{edgeimpulse}. Training uses categorical cross-entropy with the Adam
+optimiser, a 20\% validation split, and standard-scaler normalisation of the
+inputs, whose per-channel means and standard deviations are exported so the
+phone can reproduce the identical normalisation at inference time.
+
+\section{Quantisation and Deployment}
+
+The trained model is exported as an 8-bit-integer (int8) quantised TensorFlow
+Lite file \cite{tflite}. Quantisation reduces the model size roughly four-fold
+and speeds up inference, and on this data it incurred no measurable accuracy
+loss. The deployed model occupies about 137\,KB of flash and 22.7\,KB of RAM
+and runs in approximately 1\,ms per inference (Chapter~7). Because the model's
+input and output tensors are both int8, the application must quantise the
+normalised input and dequantise the output using the scale and zero-point
+published in the model—handled in the mobile application (Chapter~6).
