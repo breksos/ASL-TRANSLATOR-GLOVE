@@ -23,7 +23,7 @@
 #define FINGER_ID 1                            // thumb
 // 8.5 dBm: ample margin at the few-cm link, ~half the TX current spike of
 // 19.5 dBm. This board was the brown-out-prone one, so keep it low.
-#define TX_POWER WIFI_POWER_8_5dBm
+#define TX_POWER WIFI_POWER_19_5dBm
 // --------------------------------------------------------------------------
 
 // Broadcast — fire-and-forget, no ACK retries, no master MAC needed.

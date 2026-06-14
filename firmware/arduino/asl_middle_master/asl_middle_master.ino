@@ -38,7 +38,7 @@
 //   2. Read "# Master MAC:" -> paste into asl_finger_slave MASTER_MAC.
 //   3. Run scripts/record.py against the COM port.
 
-#define USE_BLE 0   // <-- 1 = BLE to phone, 0 = CSV to record.py
+#define USE_BLE 1   // <-- 1 = BLE to phone, 0 = CSV to record.py
 
 #include <Arduino.h>
 #include <WiFi.h>

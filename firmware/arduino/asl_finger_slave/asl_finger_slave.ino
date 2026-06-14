@@ -25,7 +25,7 @@
 #include <math.h>
 
 // ---- USER CONFIG ---------------------------------------------------------- 58:8C:81:AD:E1:20
-#define FINGER_ID 1                            // 1=thumb 2=index 4=ring 5=pinky
+#define FINGER_ID 5                            // 1=thumb 2=index 4=ring 5=pinky
 // TX power for this board's ESP-NOW radio. 8.5 dBm has ample margin at the
 // few-cm finger-to-master range and roughly halves the ~335 mA TX spike that
 // sagged marginal boards into brown-out. Raise a SINGLE board here only if the
