@@ -37,6 +37,13 @@ class InferenceService {
   Timer? _ticker;
   bool _disposed = false;
 
+  /// Why the most recent [captureOnce] returned null. Lets the UI tell a real
+  /// streaming failure ("no frames reached the buffer") apart from an inference
+  /// failure ("the window filled fine but the model couldn't run on it" — e.g.
+  /// a model whose class count doesn't match the labels file). Null after a
+  /// successful capture.
+  String? lastCaptureError;
+
   bool get isLoaded => _interpreter != null && _labels.isNotEmpty;
   List<String> get labels => List.unmodifiable(_labels);
 
@@ -159,7 +166,11 @@ class InferenceService {
   /// The window length here is identical to the training window, so the model
   /// sees the same data shape at inference that it saw during training.
   Future<Prediction?> captureOnce() async {
-    if (_disposed || _interpreter == null || _labels.isEmpty) return null;
+    lastCaptureError = null;
+    if (_disposed || _interpreter == null || _labels.isEmpty) {
+      lastCaptureError = 'No model is loaded.';
+      return null;
+    }
     _buffer.clear();
     final deadline = DateTime.now().add(AppConfig.captureTimeout);
     while (!_buffer.isFull && DateTime.now().isBefore(deadline)) {
@@ -167,13 +178,27 @@ class InferenceService {
     }
     final flat = _buffer.snapshot();
     if (flat == null) {
+      // The window never filled: this is the genuine "no data from the glove"
+      // case — the link dropped or the slaves aren't streaming.
+      lastCaptureError = 'No data from the glove — only '
+          '${_buffer.length}/${AppConfig.windowTimesteps} frames arrived. '
+          'Check the connection and that the glove is streaming.';
       debugPrint('InferenceService: captureOnce timed out — buffer filled '
           '${_buffer.length}/${AppConfig.windowTimesteps} frames '
           '(0 => no frames reached the buffer; partial => stream too slow)');
-      return null; // window never filled (no data / disconnected)
+      return null;
     }
+    // The window DID fill — any null from here is an inference failure, NOT a
+    // streaming problem. _infer sets a precise reason in lastCaptureError.
     final pred = _infer(flat);
-    if (pred != null) _predictionController.add(pred);
+    if (pred == null) {
+      lastCaptureError ??= 'The glove streamed fine, but the model could not '
+          'run on the captured window. This is usually a model/labels '
+          'mismatch — the loaded model and the labels file must have the same '
+          'number of classes (labels file has ${_labels.length}).';
+      return null;
+    }
+    _predictionController.add(pred);
     return pred;
   }
 
@@ -233,6 +258,10 @@ class InferenceService {
       }
     } catch (e) {
       debugPrint('InferenceService: run() failed: $e');
+      lastCaptureError = 'Model run failed: $e. The most common cause is a '
+          'model whose output class count differs from the labels file '
+          '(${_labels.length} labels loaded) — deploy a model that matches '
+          'the labels.';
       return null;
     }
 

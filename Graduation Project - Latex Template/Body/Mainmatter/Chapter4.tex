@@ -50,10 +50,16 @@ sequence number.
 \section{The Slave Sketch}
 
 A slave runs a deadline-scheduled 25\,Hz loop. Each cycle it reads and fuses
-its IMU, builds its packet, and transmits it by ESP-NOW \emph{unicast} to the
-master's address on a fixed Wi-Fi channel. A staggered start-up delay
-per finger reduces the chance that all four slaves transmit in the same
-instant. The module also prints a periodic diagnostic line (read success rate,
+its IMU, builds its packet, and \emph{broadcasts} it over ESP-NOW on a fixed
+Wi-Fi channel. Broadcasting rather than addressing the master directly was a
+deliberate change: a unicast send waits for a link-layer acknowledgement and
+retries on failure, and under the four-slave load these retries backed up the
+transmit queue and exhausted the ESP-NOW send buffers (a recurring
+\texttt{ESP\_ERR\_ESPNOW\_NO\_MEM}). A broadcast is fire-and-forget with no
+per-link ACK or retry, which removed that failure entirely; the occasional lost
+packet is harmless because the master always uses each finger's most recent
+packet. A staggered start-up delay per finger reduces the chance that all four
+slaves transmit in the same instant. The module also prints a periodic diagnostic line (read success rate,
 transmit success/failure counts, current angles) over USB for bench debugging.
 
 \section{The Master Sketch}

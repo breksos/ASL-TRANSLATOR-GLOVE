@@ -68,3 +68,29 @@ can fingerspell a word; a \textbf{Speak} button reads the assembled word aloud
 and a \textbf{Clear} button empties the buffer to start again. A confidence
 threshold suppresses low-confidence predictions so that an uncertain capture
 asks the user to try again rather than committing a wrong letter.
+
+Figure~\ref{fig:app} shows the application in use. In Words mode (left) the
+recognised sign is shown in large type with a confidence bar beneath it and is
+spoken at once; multi-word signs such as \textsc{how are you} are displayed and
+spoken as spaced phrases rather than the run-together tokens the model emits. In
+Letters mode (centre) each accepted letter is appended to the buffer shown at the
+top, and the \textbf{Speak} and \textbf{Clear} controls let the user read back
+or reset the assembled word. The Settings screen (right) exposes the confidence
+threshold, the text-to-speech voice, and the Letters-mode auto-clear interval.
+The same confidence threshold governs both modes, so the interface stays quiet
+rather than guessing when a capture is ambiguous.
+
+% FIGURE — mobile app screenshots (Words, Letters, Settings).
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.3\textwidth]{AppSS2.png}
+    \hfill
+    \includegraphics[width=0.3\textwidth]{AppSS1.png}
+    \hfill
+    \includegraphics[width=0.3\textwidth]{AppSS3.png}
+    \caption{\label{fig:app}The mobile application. Left: Words mode, which speaks
+    a recognised sign immediately. Centre: Letters mode, which accumulates
+    fingerspelled letters into a buffer with \textbf{Speak} and \textbf{Clear}
+    controls. Right: the Settings screen, exposing the confidence threshold,
+    text-to-speech voice, and the Letters-mode auto-clear interval.}
+\end{figure}

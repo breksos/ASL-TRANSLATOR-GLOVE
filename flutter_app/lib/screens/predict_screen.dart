@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../config/app_config.dart';
+import '../utils/label_format.dart';
 import '../config/hardware_config.dart';
 import '../models/ble_connection_state.dart';
 import '../models/prediction.dart';
@@ -120,7 +121,11 @@ class _PredictScreenState extends State<PredictScreen> {
     });
 
     if (pred == null) {
-      _snack('No data captured — is the glove streaming?');
+      // captureOnce distinguishes a real streaming failure from an inference
+      // failure (e.g. a model/labels class-count mismatch) — show whichever it
+      // actually was rather than always blaming the glove.
+      _snack(widget.inferenceService.lastCaptureError ??
+          'No data captured — is the glove streaming?');
       return;
     }
 
@@ -135,8 +140,9 @@ class _PredictScreenState extends State<PredictScreen> {
     if (_isLetters) {
       _appendLetter(pred.label);
     } else {
-      // Words mode: speak the recognized word automatically.
-      widget.ttsService.speakIfNew(pred.label);
+      // Words mode: speak the recognized word/phrase automatically, expanding
+      // compact tokens (HOWAREYOU -> "HOW ARE YOU") so TTS pronounces them.
+      widget.ttsService.speakIfNew(displayLabel(pred.label));
     }
   }
 

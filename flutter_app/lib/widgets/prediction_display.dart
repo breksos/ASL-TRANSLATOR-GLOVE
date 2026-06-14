@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/prediction.dart';
+import '../utils/label_format.dart';
 import 'confidence_bar.dart';
 
 /// Large display showing the most recent prediction label and confidence.
@@ -32,12 +33,19 @@ class PredictionDisplay extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          p.label,
-          style: theme.textTheme.displayLarge?.copyWith(
-            color: isStrong
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outline,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              displayLabel(p.label),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.displayLarge?.copyWith(
+                color: isStrong
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.outline,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 24),

@@ -63,33 +63,60 @@ Quantisation     & int8 (input and output) \\
 \section{Recognition Accuracy}
 
 Several models were trained over the course of the project as the feature
-representation evolved. Table~\ref{tab:acc} summarises the held-out test
-accuracy of the main variants. The test sets are split off \emph{before}
-augmentation, so augmented copies of test samples never appear in training and
-the figures are not inflated by that form of leakage.
+representation evolved. Table~\ref{tab:acc} summarises the validation-set
+accuracy of the main variants, as reported by Edge Impulse on the final
+training run of each. The held-out split is taken \emph{before} augmentation,
+so augmented copies of validation samples never appear in training and the
+figures are not inflated by that form of leakage.
 
 \begin{table}[!htbp]
 \centering
-\caption{\label{tab:acc}Held-out test accuracy of the main model variants.
-All figures are within-session (training and test recorded in the same
-session); see the discussion on cross-session generalisation.}
+\caption{\label{tab:acc}Edge Impulse validation-set accuracy of the main model
+variants. All figures are within-session (the data is recorded in a single
+session and split internally); they measure separability under fixed
+calibration, not cross-session generalisation---see the caveat below.}
 \begin{tabular}{lccc}
 \toprule
-Model & Classes & Features & Held-out accuracy \\
+Model & Classes & Features & Accuracy \\
 \midrule
 Smoke set        & 5  & raw / static     & high (pipeline validation) \\
 Letters v2       & 26 & relative, static & $\approx$100\% \\
-Words            & 15 & absolute, dynamic& $\approx$100\% \\
-Letters v3       & 26 & absolute, dynamic& high \\
+Words (final)    & 19 & absolute, dynamic& 100.0\% \\
+Letters v3 (final)& 26 & absolute, dynamic& 100.0\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+The accuracy figures alone do not show \emph{which} classes were confused, which
+is where the feature representation made its difference. Figure~\ref{fig:cm}
+shows the validation-set confusion matrices exported from Edge Impulse for the
+final letters and words models. Both are fully diagonal: every class is
+separated cleanly with no residual within-session confusions. This is exactly
+what the move to dynamic gestures with absolute features bought, in contrast to
+the systematic off-diagonal errors (e.g.\ T$\rightarrow$A,
+YOU$\leftrightarrow$ME) that the earlier static and relative representations
+produced. The meaningful residual errors are no longer within-session---they
+appear only in live, cross-session use, which is discussed next.
+
+% FIGURE — Edge Impulse confusion matrices (letters above, words below).
+% Stacked rather than side-by-side so the dense 26-class letters matrix stays
+% legible at full text width.
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.82\textwidth]{letters-matrix.png}\\[1.5ex]
+    \includegraphics[width=0.82\textwidth]{words-matrix.png}
+    \caption{\label{fig:cm}Validation-set confusion matrices from Edge Impulse.
+    Top: the 26-letter model. Bottom: the 19-word model. Both are fully
+    diagonal---every class is recognised with no within-session confusion---so
+    the residual errors of interest are the cross-session ones discussed in the
+    live findings below, not anything visible here.}
+\end{figure}
+
 \subsection{The Single-Session Caveat}
 
-The held-out accuracies in Table~\ref{tab:acc} are high, but they are
-\emph{within-session}: each test set shares the same calibration, mounting, and
-thermal state as its training set. This is the easiest possible test and must
+The validation accuracies in Table~\ref{tab:acc} reach 100\%, but they are
+\emph{within-session}: each validation split shares the same calibration,
+mounting, and thermal state as its training set. This is the easiest possible test and must
 not be read as the system's accuracy for a fresh user session. The honest
 measure of generalisation is cross-session—training on one or more sessions and
 testing on a different day with a fresh calibration—and the live testing

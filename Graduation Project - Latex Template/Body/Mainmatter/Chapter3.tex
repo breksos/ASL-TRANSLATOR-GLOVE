@@ -30,21 +30,36 @@ open air so it can actually dissipate heat rather than trap it. The complete
 stack mounts on the back of the fingertip (over the nail). Mounting on the
 nail—rather than along the finger segments—keeps the sensor on a rigid part of
 the finger, simplifies the wiring, and avoids fitting electronics into the
-knuckle gaps.
+knuckle gaps. Figure~\ref{fig:module} shows a single assembled module.
 
 The I\textsuperscript{2}C bus uses pins D4 (GPIO6, SDA) and D5 (GPIO7, SCL) on
 the XIAO at 400\,kHz. Each MPU6050 is configured with a digital low-pass filter
 at 10\,Hz, a gyroscope full-scale range of $\pm$500\,$^{\circ}$/s, and an
 accelerometer range of $\pm$4\,g.
 
-%% FIGURE: a photo of one nail-mounted XIAO+MPU module.
-%% To include: place the photo in Imgs/ (e.g. module.jpg) and uncomment:
-% \begin{figure}[!htbp]
-%     \centering
-%     \includegraphics[width=0.5\textwidth]{module.jpg}
-%     \caption{\label{fig:module}A nail-mounted finger module: XIAO ESP32-C3
-%     stacked over an MPU6050 with an isolating pad between them.}
-% \end{figure}
+Five such modules make up the complete device. Figure~\ref{fig:glove} shows the
+glove as worn: one module over each fingernail, with the middle-finger module
+acting as the master and the remaining four as slaves. All five share a common
+power rail, and only the master carries the Bluetooth link to the phone, so the
+wiring the user sees is deliberately minimal—short inter-module runs and a
+single cable to the power source.
+
+% FIGURE — single finger module.
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{Module.jpg}
+    \caption{\label{fig:module}A nail-mounted finger module: XIAO ESP32-C3
+    stacked over an MPU6050 with an isolating pad between them.}
+\end{figure}
+
+% FIGURE — the fully assembled glove on the hand.
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Glove.jpg}
+    \caption{\label{fig:glove}The assembled glove. Five finger modules (thumb,
+    index, ring, and pinky as slaves; middle as master) are mounted over the
+    nails and wired to a single power rail.}
+\end{figure}
 
 \section{Network Topology: Master and Slaves}
 
@@ -54,7 +69,59 @@ slaves}. Each slave reads and fuses its own IMU and transmits a small packet to
 the master over ESP-NOW at 25\,Hz. The master reads its own IMU, collects the
 latest packet from each slave, and assembles a single 45-channel feature vector
 (five fingers $\times$ nine fields), which it forwards to the phone over BLE.
-This topology is illustrated conceptually in Table~\ref{tab:topology}.
+This topology is illustrated in Figure~\ref{fig:arch} and summarised in
+Table~\ref{tab:topology}.
+
+% Architecture / data-flow diagram (native TikZ, no image file required).
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=8mm,
+    slave/.style={draw, rounded corners, align=center, minimum width=20mm,
+                  minimum height=9mm, fill=black!4},
+    master/.style={draw, very thick, rounded corners, align=center,
+                   minimum width=26mm, minimum height=12mm, fill=black!8},
+    sink/.style={draw, rounded corners, align=center, minimum width=22mm,
+                 minimum height=10mm, fill=black!4},
+    espnow/.style={-{Latex[length=2mm]}, thick},
+    ble/.style={-{Latex[length=2.4mm]}, very thick},
+]
+    % Slaves on the left, stacked
+    \node[slave] (thumb) {Thumb\\\scriptsize slave};
+    \node[slave, below=of thumb] (index) {Index\\\scriptsize slave};
+    \node[slave, below=of index] (ring)  {Ring\\\scriptsize slave};
+    \node[slave, below=of ring]  (pinky) {Pinky\\\scriptsize slave};
+
+    % Master in the middle
+    \node[master, right=26mm of index, yshift=-7mm] (master)
+        {Middle\\\textbf{master}\\\scriptsize +own IMU};
+
+    % Phone on the right
+    \node[sink, right=24mm of master] (phone)
+        {Phone\\\scriptsize CNN + TTS};
+
+    % ESP-NOW links from each slave to master
+    \draw[espnow] (thumb.east) -- (master.west);
+    \draw[espnow] (index.east) -- (master.west);
+    \draw[espnow] (ring.east)  -- (master.west);
+    \draw[espnow] (pinky.east) -- (master.west);
+
+    % BLE link master -> phone
+    \draw[ble] (master.east) -- node[above, midway] {\scriptsize BLE}
+        node[below, midway] {\scriptsize 45-ch vector} (phone.west);
+
+    % Labels
+    \node[above=1mm of thumb, font=\scriptsize] {4 slaves $\times$ IMU @ 25\,Hz};
+    \node[below=6mm of master, font=\scriptsize, align=center]
+        {ESP-NOW broadcast\\(no per-link ACK retries)};
+\end{tikzpicture}
+\caption{\label{fig:arch}On-hand data flow. Four slave modules each fuse their
+own IMU and broadcast a packet over ESP-NOW at 25\,Hz; the middle-finger master
+adds its own IMU, assembles the 45-channel feature vector, and streams it to the
+phone over BLE, where the quantised CNN classifies it and text-to-speech speaks
+the result.}
+\end{figure}
 
 \begin{table}[!htbp]
 \centering
